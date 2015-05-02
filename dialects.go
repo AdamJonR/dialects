@@ -72,6 +72,7 @@ func Parse(dialectable Dialectable, input string) (string, error) {
 	return dialectable.GenerateOutput(parser.model)
 }
 
+// findOne returns an array of Parts, returning empty array if none found
 func findOne(partName string, parser Parser, path []string) (parts []*Part) {
 	partDefinition := parser.dialect.PartDefinitions[partName]
 	part := &Part{

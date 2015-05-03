@@ -1,23 +1,22 @@
-Dialects
-========
+# Dialects
 
 Dialects is a recursive-descent parser for Domain Specific Languages (DSLs) that is implemented using Go and facilitates parsing through use of Parsing Expression Grammars (PEGs).
 
-Motivation
-----------
+## Motivation
 
 DSLs allow you to uniquely emphasize the relevant information required to solve a problem. Syntax is no longer a vestige of the chosen programming language, but rather a carefully selected set of choices that best communicate the potential solutions for a specific problem domain.
 
 The Dialects parser provides a simple library to facilitate the development of DSLs using the Go programming language.
 
-How Does It Work?
--------------------------
+## How Does It Work?
 
 You use the dialects library by creating a package that implements the Dialectable interface, which consists of the following methods:
 
-    NewDialect() *Dialect
-    NewModel() interface{}
-    GenerateOutput(model interface{}) (string, error)
+```
+NewDialect() *Dialect
+NewModel() interface{}
+GenerateOutput(model interface{}) (string, error)
+```
 
 The flow of parsing works through the following steps:
 
@@ -28,7 +27,6 @@ The flow of parsing works through the following steps:
 5. The handler builds up the model with the information contained in the part.
 6. Once the file has been completely parsed, the GenerateOutput() method is called, and this returns the generated output after parsing or an error.
 
-Example
--------
+## Example
 
 For an example implementation of a DSL using the Dialects library, you can view the [qform DSL I've authored creating html5 forms](https://github.com/AdamJonR/qform).

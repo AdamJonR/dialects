@@ -3,7 +3,9 @@ package dialects
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
+	"strings"
 )
 
 // PartDefinition provides the struct that's used to define the various parts of a grammar
@@ -74,6 +76,10 @@ func Parse(dialectable Dialectable, input string) (string, error) {
 
 // findOne returns an array of Parts, returning empty array if none found
 func findOne(partName string, parser Parser, path []string) (parts []*Part) {
+	// exit early if position pointer is already at the end of the string
+	if len(parser.input) == (*parser.currentPosPointer + 1) {
+		return nil
+	}
 	partDefinition := parser.dialect.PartDefinitions[partName]
 	part := &Part{
 		Name:   partName,
@@ -174,6 +180,8 @@ func findConstituents(Constituents [][]string, parser Parser, path []string) (pa
 }
 
 func findConstituentseq(Constituentseq []string, parser Parser, path []string) (parts []*Part) {
+	// added for debugging
+	fmt.Printf("Searching for sequence: %q\n", strings.Join(Constituentseq, ", "))
 	var Constituents []*Part
 	for _, constituentID := range Constituentseq {
 		lastChar := constituentID[len(constituentID)-1:]
@@ -183,6 +191,8 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			parts = findMany(constituentID[:len(constituentID)-1], parser, path)
 			// if one or more required part not found, we're done
 			if len(parts) < 1 {
+				// added for debugging
+				fmt.Printf("Not found because of missing %q here: %q\n\n", constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
 				return parts
 			}
 		case "*":
@@ -193,6 +203,8 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			parts = findOne(constituentID, parser, path)
 			// if required part not found, we're done
 			if len(parts) < 1 {
+				// added for debugging
+				fmt.Printf("Not found because of missing %q here: %q\n\n", constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
 				return parts
 			}
 		}

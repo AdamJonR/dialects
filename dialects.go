@@ -87,17 +87,14 @@ func findOne(partName string, parser Parser, path []string) (parts []*Part) {
 	}
 	// save current position and pointer reference
 	currentPosPointer := parser.currentPosPointer
-	tempPos := *currentPosPointer
 	// set part start to current position
-	part.StartPos = tempPos
+	part.StartPos = *currentPosPointer
 	// handle Consituents
 	if len(partDefinition.Constituents) > 0 {
 		// find Constituents
 		part.Constituents = findConstituents(partDefinition.Constituents, parser, path)
 		// handle no Constituents
 		if len(part.Constituents) < 1 {
-			// ensure current pos reset to what it was at the start of the call
-			(*currentPosPointer) = tempPos
 			// return early with nil
 			return nil
 		}
@@ -166,6 +163,9 @@ func findMany(partName string, parser Parser, path []string) (manyParts []*Part)
 }
 
 func findConstituents(Constituents [][]string, parser Parser, path []string) (parts []*Part) {
+	// store temporary position in case sequence isn't found
+	tempPos := *parser.currentPosPointer
+	// cycle through constituent sequences
 	for _, Constituentseq := range Constituents {
 		// test each possible set of Constituents
 		parts := findConstituentseq(Constituentseq, parser, path)
@@ -173,7 +173,8 @@ func findConstituents(Constituents [][]string, parser Parser, path []string) (pa
 		if len(parts) > 0 {
 			return parts
 		}
-		// otherwise, try next sequence
+		// otherwise, reset position and try next sequence
+		*parser.currentPosPointer = tempPos
 	}
 	// no constituent set found, so return empty slice
 	return nil
@@ -181,7 +182,7 @@ func findConstituents(Constituents [][]string, parser Parser, path []string) (pa
 
 func findConstituentseq(Constituentseq []string, parser Parser, path []string) (parts []*Part) {
 	// added for debugging
-	fmt.Printf("Searching for sequence: %q\n", strings.Join(Constituentseq, ", "))
+	fmt.Printf("%q: searching...\n", strings.Join(Constituentseq, ", "))
 	var Constituents []*Part
 	for _, constituentID := range Constituentseq {
 		lastChar := constituentID[len(constituentID)-1:]
@@ -192,7 +193,7 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			// if one or more required part not found, we're done
 			if len(parts) < 1 {
 				// added for debugging
-				fmt.Printf("Not found because of missing %q here: %q\n\n", constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
+				fmt.Printf("%q: not found (missing %q :: %q)\n", strings.Join(Constituentseq, ", "), constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
 				return parts
 			}
 		case "*":
@@ -204,7 +205,7 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			// if required part not found, we're done
 			if len(parts) < 1 {
 				// added for debugging
-				fmt.Printf("Not found because of missing %q here: %q\n\n", constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
+				fmt.Printf("%q: not found (missing %q :: %q)\n", strings.Join(Constituentseq, ", "), constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
 				return parts
 			}
 		}
@@ -213,5 +214,7 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			Constituents = append(Constituents, parts...)
 		}
 	}
+	// found sequence
+	fmt.Printf("%q: found\n", strings.Join(Constituentseq, ", "))
 	return Constituents
 }

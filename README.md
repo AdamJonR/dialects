@@ -1,7 +1,7 @@
 Dialects
 ========
 
-A recursive-descent parser for Domain Specific Languages (DSLs) that is implemented using Go and facilitates parsing through use of Parsing Expression Grammars (PEGs).
+Dialects is a recursive-descent parser for Domain Specific Languages (DSLs) that is implemented using Go and facilitates parsing through use of Parsing Expression Grammars (PEGs).
 
 Motivation
 ----------

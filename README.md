@@ -10,12 +10,38 @@ The Dialects parser provides a simple library to facilitate the development of D
 
 ## How Does It Work?
 
-You use the dialects library by creating a package that implements the Dialectable interface, which consists of the following methods:
+You use the dialects library by creating a package with a struct that implements the Dialectable interface and then passing a pointer to the Dialectable value to the Parse function.
+
+### Dialectable Interface
 
 ```
 NewDialect() *Dialect
 NewModel() interface{}
 GenerateOutput(model interface{}) (string, error)
+```
+
+The Dialectable interface essentially serves as a container for callbacks needed during the parsing process.
+
+### Dialect Struct
+
+```
+type Dialect struct {
+	Title           string
+	Description     string
+	Examples        map[string]string
+	RootName        string
+	PartDefinitions map[string]PartDefinition
+	Model           interface{}
+	Version         float64
+}
+```
+
+The Dialect struct contains information about this particular DSL Dialect, including the title, description, examples, version, and an empty interface for the model that the DSL builds up during parsing. The root name and part definitions require further explanation.
+
+### Parse() Function
+
+```
+Parse(dialectable Dialectable, input string) (string, error, string)
 ```
 
 The flow of Parse() function works through the following steps:

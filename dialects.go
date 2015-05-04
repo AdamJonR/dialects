@@ -2,9 +2,10 @@
 package dialects
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -49,6 +50,13 @@ type Part struct {
 	Constituents []*Part
 }
 
+type Log struct {
+	buffer      *bytes.Buffer
+	indent      string
+	indentLevel int
+	currentLine int
+}
+
 // Parser provides a simple container for the primary parsing variables
 type Parser struct {
 	status            string
@@ -58,20 +66,23 @@ type Parser struct {
 	dialect           *Dialect
 	model             interface{}
 	compiledRegexes   map[string]*regexp.Regexp
+	log               *Log
 }
 
 // Parse provides the entry point for using the dialect library
-func Parse(dialectable Dialectable, input string) (string, error) {
+func Parse(dialectable Dialectable, input string) (string, error, string) {
 	parser := Parser{model: dialectable.NewModel(), dialect: dialectable.NewDialect(), compiledRegexes: make(map[string]*regexp.Regexp)}
 	currentPos := 0
 	parser.currentPosPointer = &currentPos
 	parser.input = input
+	parser.log = &Log{buffer: new(bytes.Buffer), indent: "| | | | ", indentLevel: 0, currentLine: 1}
 	// WHEEEEEEEE!!!! (enjoy the ride as you descend into the rabbit hole)
 	parts := findOne(parser.dialect.RootName, parser, nil)
 	if len(parts) < 1 {
-		return "", errors.New("dialects error: Parse() function of dialect unable to find root part (" + parser.dialect.RootName + ") of " + parser.dialect.Title)
+		return "", errors.New("dialects error: Parse() function of dialect unable to find root part (" + parser.dialect.RootName + ") of " + parser.dialect.Title), ""
 	}
-	return dialectable.GenerateOutput(parser.model)
+	output, err := dialectable.GenerateOutput(parser.model)
+	return output, err, parser.log.buffer.String() + "\n"
 }
 
 // findOne returns an array of Parts, returning empty array if none found
@@ -137,6 +148,8 @@ func findOne(partName string, parser Parser, path []string) (parts []*Part) {
 		}
 		// update current position to account for length of entire match
 		(*currentPosPointer) = (*currentPosPointer) + len(matches[0])
+		// update currentLine to account for \n's in the match
+		parser.log.currentLine = parser.log.currentLine + strings.Count(matches[0], "\n")
 		// update EndPos
 		part.EndPos = (*currentPosPointer)
 		// return part
@@ -165,6 +178,8 @@ func findMany(partName string, parser Parser, path []string) (manyParts []*Part)
 func findConstituents(Constituents [][]string, parser Parser, path []string) (parts []*Part) {
 	// store temporary position in case sequence isn't found
 	tempPos := *parser.currentPosPointer
+	// store tempory current line
+	tempCurrentLine := parser.log.currentLine
 	// cycle through constituent sequences
 	for _, Constituentseq := range Constituents {
 		// test each possible set of Constituents
@@ -175,14 +190,21 @@ func findConstituents(Constituents [][]string, parser Parser, path []string) (pa
 		}
 		// otherwise, reset position and try next sequence
 		*parser.currentPosPointer = tempPos
+		parser.log.currentLine = tempCurrentLine
 	}
 	// no constituent set found, so return empty slice
 	return nil
 }
 
 func findConstituentseq(Constituentseq []string, parser Parser, path []string) (parts []*Part) {
-	// added for debugging
-	fmt.Printf("%q: searching...\n", strings.Join(Constituentseq, ", "))
+	// ensure log indent is large enough
+	if parser.log.indentLevel > len(parser.log.indent) {
+		parser.log.indent = parser.log.indent + parser.log.indent
+	}
+	// log sequence parsing
+	parser.log.buffer.WriteString(parser.log.indent[:parser.log.indentLevel] + strings.Join(Constituentseq, ", ") + "\n")
+	// update indentLevel
+	parser.log.indentLevel = parser.log.indentLevel + 2
 	var Constituents []*Part
 	for _, constituentID := range Constituentseq {
 		lastChar := constituentID[len(constituentID)-1:]
@@ -192,8 +214,11 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			parts = findMany(constituentID[:len(constituentID)-1], parser, path)
 			// if one or more required part not found, we're done
 			if len(parts) < 1 {
-				// added for debugging
-				fmt.Printf("%q: not found (missing %q :: %q)\n", strings.Join(Constituentseq, ", "), constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
+				// adjust indent back to current level
+				parser.log.indentLevel = parser.log.indentLevel - 2
+				// log missing part of sequence
+				parser.log.buffer.WriteString(parser.log.indent[:parser.log.indentLevel] + "missing " + constituentID[:len(constituentID)] + " on line " + strconv.Itoa(parser.log.currentLine) + "\n")
+				// return empty slice pointer
 				return parts
 			}
 		case "*":
@@ -204,8 +229,11 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			parts = findOne(constituentID, parser, path)
 			// if required part not found, we're done
 			if len(parts) < 1 {
-				// added for debugging
-				fmt.Printf("%q: not found (missing %q :: %q)\n", strings.Join(Constituentseq, ", "), constituentID[:len(constituentID)], parser.input[*parser.currentPosPointer:])
+				// adjust indent back to current level
+				parser.log.indentLevel = parser.log.indentLevel - 2
+				// log missing part of sequence
+				parser.log.buffer.WriteString(parser.log.indent[:parser.log.indentLevel] + "missing " + constituentID[:len(constituentID)] + " on line " + strconv.Itoa(parser.log.currentLine) + "\n")
+				// return empty slice pointer
 				return parts
 			}
 		}
@@ -214,7 +242,10 @@ func findConstituentseq(Constituentseq []string, parser Parser, path []string) (
 			Constituents = append(Constituents, parts...)
 		}
 	}
-	// found sequence
-	fmt.Printf("%q: found\n", strings.Join(Constituentseq, ", "))
+	// adjust indent back to current level
+	parser.log.indentLevel = parser.log.indentLevel - 2
+	// write to log buffer
+	parser.log.buffer.WriteString(parser.log.indent[:parser.log.indentLevel] + "found\n")
+	// return slice pointer
 	return Constituents
 }

@@ -18,7 +18,7 @@ NewModel() interface{}
 GenerateOutput(model interface{}) (string, error)
 ```
 
-The flow of parsing works through the following steps:
+The flow of Parse() function works through the following steps:
 
 1. Create the Dialect struct pointer and model using the NewDialect() and NewModel() methods, respectively.
 2. Parse the source using the grammar defined in the *Dialect struct returned by NewDialect().

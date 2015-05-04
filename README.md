@@ -38,6 +38,24 @@ type Dialect struct {
 
 The Dialect struct contains information about this particular DSL Dialect, including the title, description, examples, version, and an empty interface for the model that the DSL builds up during parsing. The root name and part definitions require further explanation.
 
+### Part Definitions
+
+The map of part definitions defines the grammar for the DSL Dialect. Because the definitions are contained in a map, which doesn't have a specific order, the root name identifies the part that serves as the starting point/state for parsing.
+
+The part definition struct has the following form listed below.
+
+```
+type PartDefinition struct {
+	Description   string
+	Ignore        bool
+	Constituents  [][]string
+	Handler       func(*Part, interface{}) (ok bool)
+	Regex         string
+	ValidateMatch func([]string) bool
+	FormatMatch   func([]string) string
+}
+```
+
 ### Parse() Function
 
 ```

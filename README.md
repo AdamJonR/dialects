@@ -40,7 +40,7 @@ The Dialect struct contains information about this particular DSL Dialect, inclu
 
 ### Part Definitions
 
-The map of part definitions defines the grammar for the DSL Dialect. Because the definitions are contained in a map, which doesn't have a specific order, the root name identifies the part that serves as the starting point/state for parsing.
+The map of part definitions defines the grammar for a particular DSL Dialect. Because the definitions are contained in a map, which doesn't have a specific order, the root name identifies the part that serves as the starting point/state for parsing.
 
 The part definition struct has the following form listed below.
 

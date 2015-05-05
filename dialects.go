@@ -16,7 +16,7 @@ type PartDefinition struct {
 	Constituents  [][]string
 	Handler       func(*Part, interface{}) (ok bool)
 	Regex         string
-	ValidateMatch func([]string) bool
+	ValidateMatch func([]string) (bool, string)
 	FormatMatch   func([]string) string
 }
 
@@ -136,9 +136,23 @@ func findOne(partName string, parser Parser, path []string) (parts []*Part) {
 		if len(matches) < 1 {
 			return nil
 		}
-		// return nil if invalid matche(s)
-		if partDefinition.ValidateMatch != nil && !partDefinition.ValidateMatch(matches) {
-			return nil
+		// check for validator
+		if partDefinition.ValidateMatch != nil {
+			// call validator if present
+			isValid, errMsg := partDefinition.ValidateMatch(matches)
+			// check if invalid
+			if !isValid {
+				// log error
+				if errMsg != "" {
+					// log custom error message
+					parser.log.buffer.WriteString(parser.log.indent[:parser.log.indentLevel] + "invalid " + partName + " starting on line " + strconv.Itoa(parser.log.currentLine) + ": " + errMsg + "\n")
+				} else {
+					// log generic err message
+					parser.log.buffer.WriteString(parser.log.indent[:parser.log.indentLevel] + "invalid " + partName + " starting on line " + strconv.Itoa(parser.log.currentLine) + "\n")
+				}
+				// return nil
+				return nil
+			}
 		}
 		// optionally format match
 		if partDefinition.FormatMatch != nil {
